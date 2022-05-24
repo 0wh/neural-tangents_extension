@@ -1,5 +1,8 @@
+import jax.numpy as np
+from jax import jit, grad, vmap
 from jaxlib.xla_extension import DeviceArray
 from jax.tree_util import tree_map
+
 from neural_tangents._src.utils.kernel import Kernel
 from neural_tangents._src.utils import utils
 from neural_tangents._src.stax.requirements import layer, get_req, _has_req, _set_req, requires, _fuse_requirements, _DEFAULT_INPUT_REQ, _inputs_to_kernel, _set_shapes
