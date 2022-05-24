@@ -7,7 +7,7 @@ setuptools.setup(
     name='neural_tangents_extension',
     version='1.0',
     author='Anonymous Author',
-    package_dir={'': 'neural-tangents_extension'},
+    package_dir={'': 'neural_tangents_extension'},
     packages=setuptools.find_packages(),
     long_description=long_description,
     long_description_content_type='text/markdown',
