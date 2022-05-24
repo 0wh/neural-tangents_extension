@@ -8,7 +8,7 @@ setuptools.setup(
     version='1.0',
     author='Anonymous Author',
     package_dir={'': 'neural_tangents_extension'},
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(which='neural_tangents_extension'),
     long_description=long_description,
     long_description_content_type='text/markdown',
     description='Adapt the Neural Tangents library to differential equation solvers',
