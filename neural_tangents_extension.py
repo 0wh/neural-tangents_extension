@@ -292,4 +292,6 @@ def Poisson(model, d_eq, d_sl):
     _, _, kernel_dd = Vcombine(Hcombine(equation, eq_sl), Hcombine(sl_eq, solution))
     _, _, kernel_td = Hcombine(sl_eq, solution)
     _, _, kernel_tt = solution
-    return Solve(kernel_dd, kernel_td, kernel_tt)[2]
+    _, _, kernel_fn = Solve(kernel_dd, kernel_td, kernel_tt)
+    print(kernel_fn)
+    return kernel_fn
