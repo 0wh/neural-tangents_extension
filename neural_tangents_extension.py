@@ -152,9 +152,9 @@ def _inputs_to_kernel_extension(x1, x2, *, diagonal_batch, diagonal_spatial, com
   is_reversed = False
   x1_is_x2 = utils.x1_is_x2(x1, x2, eps=eps)
   is_input = False
+  kernel = Kernel(cov1=cov1, cov2=cov2, nngp=nngp, ntk=ntk, x1_is_x2=x1_is_x2, is_gaussian=is_gaussian, is_reversed=is_reversed, is_input=is_input, diagonal_batch=diagonal_batch, diagonal_spatial=diagonal_spatial, shape1=x1.shape, shape2=x1.shape if x2 is None else x2.shape, batch_axis=batch_axis, channel_axis=channel_axis, mask1=mask1, mask2=mask2)
 
-  return Kernel(cov1=cov1, cov2=cov2, nngp=nngp, ntk=ntk, x1_is_x2=x1_is_x2, is_gaussian=is_gaussian, is_reversed=is_reversed, is_input=is_input, diagonal_batch=diagonal_batch, diagonal_spatial=diagonal_spatial, shape1=x1.shape, shape2=x1.shape if x2 is None else x2.shape, batch_axis=batch_axis, channel_axis=channel_axis, mask1=mask1, mask2=mask2)
-
+  return kernel.nngp
 
 def _rbf(x1, x2, method, c2):
   #assert channel_axis==1 or len(x1.shape)+channel_axis==1
@@ -291,7 +291,7 @@ def Deriv(serial, order_wrt_x1, order_wrt_x2):
     def deriv(x1, x2, order_wrt_x1, order_wrt_x2, get):
       if order_wrt_x1==0:
         if order_wrt_x2==0:
-          print(kernel_fn(x1, x2, get))
+          print(type(kernel_fn(x1, x2, get)))
           return kernel_fn(x1, x2, get).squeeze()
         return grad(deriv, argnums=1)(x1, x2, order_wrt_x1, order_wrt_x2-1, get).squeeze()
       return grad(deriv, argnums=0)(x1, x2, order_wrt_x1-1, order_wrt_x2, get).squeeze()
