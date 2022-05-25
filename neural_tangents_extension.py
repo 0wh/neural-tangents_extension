@@ -61,6 +61,7 @@ def _preprocess_kernel_fn_extension(kernel_fn):
       raise ValueError('invalid inputs for kernel_fn.')
     kernel = _inputs_to_kernel(x1, x2, compute_ntk=compute_ntk, **reqs)
     out_kernel = kernel_fn(kernel, x=x, x_i=x_i, x_b=x_b, which=which, **kwargs)
+    print(out_kernel)
     return _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
 
   @utils.get_namedtuple('AnalyticKernel')
@@ -74,13 +75,33 @@ def _preprocess_kernel_fn_extension(kernel_fn):
   _set_req(kernel_fn_any, get_req(kernel_fn))
   return kernel_fn_any
 
+
+def _traditional_kernel(x1, x2, method, c2, **kwargs):
+  if method=='fem':
+    nngp = _fem(x1, x2)
+  else:
+    nngp = _rbf(x1, x2, method, c2=c2)
+  ntk = None
+  is_gaussian = False
+  is_reversed = False
+  x1_is_x2 = utils.x1_is_x2(x1, x2, eps=1e-12)
+  is_input = False
+  cov1 = _cov_diag_batch(x1, False, 0, 1)
+  return Kernel(cov1=cov1, cov2=None, nngp=nngp, ntk=ntk, x1_is_x2=x1_is_x2, is_gaussian=is_gaussian, is_reversed=is_reversed, is_input=is_input, diagonal_batch=True, diagonal_spatial=False, shape1=x1.shape, shape2=x1.shape if x2 is None else x2.shape, batch_axis=0, channel_axis=1, mask1=None, mask2=None)
+
+
+
 @utils.nt_tree_fn(2)
-def _traditional_kernel(x1, x2, *, diagonal_batch, diagonal_spatial, batch_axis, channel_axis, mask_constant, eps=1e-12, method, c2, **kwargs):
+def _inputs_to_kernel_extension(x1, x2, *, diagonal_batch, diagonal_spatial, compute_ntk, batch_axis, channel_axis, mask_constant, eps=1e-12, method=None, c2=None, **kwargs):
+  if not (isinstance(x1, np.ndarray) and (x2 is None or isinstance(x2, np.ndarray))):
+    raise TypeError(f'Wrong input types given. Found `x1` of type {type(x1)} and `x2` of type {type(x2)}, need both to be `np.ndarray`s (`x2` can be `None`).')
+
   batch_axis %= x1.ndim
   diagonal_spatial = bool(diagonal_spatial)
-  assert batch_axis == 0
-  if channel_axis is None:
 
+  assert batch_axis == 0
+
+  if channel_axis is None:
     def flatten(x):
       if x is None:
         return x
@@ -89,12 +110,16 @@ def _traditional_kernel(x1, x2, *, diagonal_batch, diagonal_spatial, batch_axis,
     x1, x2 = flatten(x1), flatten(x2)
     batch_axis, channel_axis = 0, 1
     diagonal_spatial = False
+
   else:
     channel_axis %= x1.ndim
 
   def get_x_cov_mask(x):
     if x is None:
       return None, None, None
+
+    if x.ndim < 2:
+      raise ValueError(f'Inputs must be at least 2D (a batch dimension and a channel/feature dimension), got {x.ndim}.')
 
     x = utils.get_masked_array(x, mask_constant)
     x, mask = x.masked_value, x.mask
@@ -109,23 +134,28 @@ def _traditional_kernel(x1, x2, *, diagonal_batch, diagonal_spatial, batch_axis,
   x1, cov1, mask1 = get_x_cov_mask(x1)
   x2, cov2, mask2 = get_x_cov_mask(x2)
   print('method', method, kwargs)
-  if method=='fem':
-    assert x1.shape[channel_axis]==1
-    nngp = _fem(x1, x2)
+  if method is not None:
+    if method=='fem':
+      assert x1.shape[channel_axis]==1
+      nngp = _fem(x1, x2)
+    elif c2 is None:
+      nngp = _rbf(x1, x2, channel_axis, method)
+    else:
+      nngp = _rbf(x1, x2, channel_axis, method, c2=c2)
+    ntk = None
   else:
-    nngp = _rbf(x1, x2, channel_axis, method, c2=c2)
-  ntk = None
+    nngp = _cov(x1, x2, diagonal_spatial, batch_axis, channel_axis)
+    ntk = np.zeros((), nngp.dtype) if compute_ntk else None
   is_gaussian = False
   is_reversed = False
   x1_is_x2 = utils.x1_is_x2(x1, x2, eps=eps)
   is_input = False
 
-  kernel = Kernel(cov1=cov1, cov2=cov2, nngp=nngp, ntk=ntk, x1_is_x2=x1_is_x2, is_gaussian=is_gaussian, is_reversed=is_reversed, is_input=is_input, diagonal_batch=diagonal_batch, diagonal_spatial=diagonal_spatial, shape1=x1.shape, shape2=x1.shape if x2 is None else x2.shape, batch_axis=batch_axis, channel_axis=channel_axis, mask1=mask1, mask2=mask2)
-  return _set_shapes(_not_implemented, _not_implemented, kernel, kernel, **kwargs)
+  return Kernel(cov1=cov1, cov2=cov2, nngp=nngp, ntk=ntk, x1_is_x2=x1_is_x2, is_gaussian=is_gaussian, is_reversed=is_reversed, is_input=is_input, diagonal_batch=diagonal_batch, diagonal_spatial=diagonal_spatial, shape1=x1.shape, shape2=x1.shape if x2 is None else x2.shape, batch_axis=batch_axis, channel_axis=channel_axis, mask1=mask1, mask2=mask2)
 
 
-def _rbf(x1, x2, channel_axis, method, c2=1):
-  assert channel_axis==1 or len(x1.shape)+channel_axis==1
+def _rbf(x1, x2, method, c2):
+  #assert channel_axis==1 or len(x1.shape)+channel_axis==1
   x2 = x1 if x2 is None else x2
   r2 = np.sum((x1[:,None]-x2[None])**2, axis=2)
   if method=='gaussian':
