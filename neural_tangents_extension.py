@@ -61,7 +61,7 @@ def _preprocess_kernel_fn_extension(kernel_fn):
       raise ValueError('invalid inputs for kernel_fn.')
     kernel = _inputs_to_kernel(x1, x2, compute_ntk=compute_ntk, **reqs)
     out_kernel = kernel_fn(kernel, x=x, x_i=x_i, x_b=x_b, which=which, **kwargs)
-    print(out_kernel)
+    #print(out_kernel)
     return _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
 
   @utils.get_namedtuple('AnalyticKernel')
@@ -89,75 +89,10 @@ def _traditional_kernel(method, c2=None):
     is_input = False
     cov1 = _cov_diag_batch(x1, False, 0, 1)
     kernel = Kernel(cov1=cov1, cov2=None, nngp=nngp, ntk=ntk, x1_is_x2=x1_is_x2, is_gaussian=is_gaussian, is_reversed=is_reversed, is_input=is_input, diagonal_batch=True, diagonal_spatial=False, shape1=x1.shape, shape2=x1.shape if x2 is None else x2.shape, batch_axis=0, channel_axis=1, mask1=None, mask2=None)
-    print(type(kernel), type(kernel.nngp))
-    #return Kernel(cov1=cov1, cov2=None, nngp=nngp, ntk=ntk, x1_is_x2=x1_is_x2, is_gaussian=is_gaussian, is_reversed=is_reversed, is_input=is_input, diagonal_batch=True, diagonal_spatial=False, shape1=x1.shape, shape2=x1.shape if x2 is None else x2.shape, batch_axis=0, channel_axis=1, mask1=None, mask2=None)
+    #print(type(kernel), type(kernel.nngp))
     return kernel.nngp
   return kernel_fn
 
-
-
-@utils.nt_tree_fn(2)
-def _inputs_to_kernel_extension(x1, x2, *, diagonal_batch, diagonal_spatial, compute_ntk, batch_axis, channel_axis, mask_constant, eps=1e-12, method=None, c2=None, **kwargs):
-  if not (isinstance(x1, np.ndarray) and (x2 is None or isinstance(x2, np.ndarray))):
-    raise TypeError(f'Wrong input types given. Found `x1` of type {type(x1)} and `x2` of type {type(x2)}, need both to be `np.ndarray`s (`x2` can be `None`).')
-
-  batch_axis %= x1.ndim
-  diagonal_spatial = bool(diagonal_spatial)
-
-  assert batch_axis == 0
-
-  if channel_axis is None:
-    def flatten(x):
-      if x is None:
-        return x
-      return np.moveaxis(x, batch_axis, 0).reshape((x.shape[batch_axis], -1))
-
-    x1, x2 = flatten(x1), flatten(x2)
-    batch_axis, channel_axis = 0, 1
-    diagonal_spatial = False
-
-  else:
-    channel_axis %= x1.ndim
-
-  def get_x_cov_mask(x):
-    if x is None:
-      return None, None, None
-
-    if x.ndim < 2:
-      raise ValueError(f'Inputs must be at least 2D (a batch dimension and a channel/feature dimension), got {x.ndim}.')
-
-    x = utils.get_masked_array(x, mask_constant)
-    x, mask = x.masked_value, x.mask
-
-    if diagonal_batch:
-      cov = _cov_diag_batch(x, diagonal_spatial, batch_axis, channel_axis)
-    else:
-      cov = _cov(x, x, diagonal_spatial, batch_axis, channel_axis)
-
-    return x, cov, mask
-
-  x1, cov1, mask1 = get_x_cov_mask(x1)
-  x2, cov2, mask2 = get_x_cov_mask(x2)
-  print('method', method, kwargs)
-  if method is not None:
-    if method=='fem':
-      assert x1.shape[channel_axis]==1
-      nngp = _fem(x1, x2)
-    elif c2 is None:
-      nngp = _rbf(x1, x2, channel_axis, method)
-    else:
-      nngp = _rbf(x1, x2, channel_axis, method, c2=c2)
-    ntk = None
-  else:
-    nngp = _cov(x1, x2, diagonal_spatial, batch_axis, channel_axis)
-    ntk = np.zeros((), nngp.dtype) if compute_ntk else None
-  is_gaussian = False
-  is_reversed = False
-  x1_is_x2 = utils.x1_is_x2(x1, x2, eps=eps)
-  is_input = False
-  kernel = Kernel(cov1=cov1, cov2=cov2, nngp=nngp, ntk=ntk, x1_is_x2=x1_is_x2, is_gaussian=is_gaussian, is_reversed=is_reversed, is_input=is_input, diagonal_batch=diagonal_batch, diagonal_spatial=diagonal_spatial, shape1=x1.shape, shape2=x1.shape if x2 is None else x2.shape, batch_axis=batch_axis, channel_axis=channel_axis, mask1=mask1, mask2=mask2)
-  print(type(kernel), type(kernel.nngp))
-  return kernel.nngp
 
 def _rbf(x1, x2, method, c2):
   #assert channel_axis==1 or len(x1.shape)+channel_axis==1
@@ -216,68 +151,68 @@ def Solve(kdd, ktd, ktt):
 
 @layer
 def Hcombine(layer_fn_0, layer_fn_1):
-    _, _, kernel_fn_0 = layer_fn_0
-    _, _, kernel_fn_1 = layer_fn_1
+  _, _, kernel_fn_0 = layer_fn_0
+  _, _, kernel_fn_1 = layer_fn_1
 
-    def new_kernel_fn(k, x=None, x_i=None, x_b=None, **kwargs):
-        ntk = k.ntk
-        if ntk is None:
-            get = 'nngp'
-        else:
-            get = None
+  def new_kernel_fn(k, x=None, x_i=None, x_b=None, **kwargs):
+    ntk = k.ntk
+    if ntk is None:
+      get = 'nngp'
+    else:
+      get = None
 
-        if x is None:
-            x = np.concatenate((x_i, x_b))
-            nngp_0 = kernel_fn_0(x, x_i, x=x_i, x_i=x_i, x_b=x_b, get=get)
-            nngp_1 = kernel_fn_1(x, x_b, x=x_b, x_i=x_i, x_b=x_b, get=get)
-            if ntk is not None:
-                nngp_0, ntk_0 = nngp_0.nngp, nngp_0.ntk
-                nngp_1, ntk_1 = nngp_1.nngp, nngp_1.ntk
-                ntk = np.concatenate((ntk_0, ntk_1), axis=1)
-            nngp = np.concatenate((nngp_0, nngp_1), axis=1)                
-        else:
-            nngp_0 = kernel_fn_0(x, x_i, _x1=x, _x2=x_i, get=get)
-            nngp_1 = kernel_fn_1(x, x_b, _x1=x, _x2=x_b, get=get)
-            if ntk is not None:
-                nngp_0, ntk_0 = nngp_0.nngp, nngp_0.ntk
-                nngp_1, ntk_1 = nngp_1.nngp, nngp_1.ntk
-                ntk = np.concatenate((ntk_0, ntk_1), axis=1)
-            nngp = np.concatenate((nngp_0, nngp_1), axis=1)  
-        return k.replace(nngp=nngp, ntk=ntk, is_gaussian=True, is_input=False)
-    return _not_implemented, _not_implemented, new_kernel_fn
+    if x is None:
+      x = np.concatenate((x_i, x_b))
+      nngp_0 = kernel_fn_0(x, x_i, x=x_i, x_i=x_i, x_b=x_b, get=get)
+      nngp_1 = kernel_fn_1(x, x_b, x=x_b, x_i=x_i, x_b=x_b, get=get)
+      if ntk is not None:
+        nngp_0, ntk_0 = nngp_0.nngp, nngp_0.ntk
+        nngp_1, ntk_1 = nngp_1.nngp, nngp_1.ntk
+        ntk = np.concatenate((ntk_0, ntk_1), axis=1)
+      nngp = np.concatenate((nngp_0, nngp_1), axis=1)                
+    else:
+      nngp_0 = kernel_fn_0(x, x_i, _x1=x, _x2=x_i, get=get)
+      nngp_1 = kernel_fn_1(x, x_b, _x1=x, _x2=x_b, get=get)
+      if ntk is not None:
+        nngp_0, ntk_0 = nngp_0.nngp, nngp_0.ntk
+        nngp_1, ntk_1 = nngp_1.nngp, nngp_1.ntk
+        ntk = np.concatenate((ntk_0, ntk_1), axis=1)
+      nngp = np.concatenate((nngp_0, nngp_1), axis=1)  
+    return k.replace(nngp=nngp, ntk=ntk, is_gaussian=True, is_input=False)
+  return _not_implemented, _not_implemented, new_kernel_fn
 
 
 @layer
 def Vcombine(layer_fn_0, layer_fn_1):
-    _, _, kernel_fn_0 = layer_fn_0
-    _, _, kernel_fn_1 = layer_fn_1
+  _, _, kernel_fn_0 = layer_fn_0
+  _, _, kernel_fn_1 = layer_fn_1
 
-    def new_kernel_fn(k, x=None, x_i=None, x_b=None, **kwargs):
-        ntk = k.ntk
-        if ntk is None:
-            get = 'nngp'
-        else:
-            get = None
+  def new_kernel_fn(k, x=None, x_i=None, x_b=None, **kwargs):
+    ntk = k.ntk
+    if ntk is None:
+      get = 'nngp'
+    else:
+      get = None
 
-        if x is None:
-            x = np.concatenate((x_i, x_b))
-            nngp_0 = kernel_fn_0(x_i, x, x=x_i, x_i=x_i, x_b=x_b, get=get)
-            nngp_1 = kernel_fn_1(x_b, x, x=x_b, x_i=x_i, x_b=x_b, get=get)
-            if ntk is not None:
-                nngp_0, ntk_0 = nngp_0.nngp, nngp_0.ntk
-                nngp_1, ntk_1 = nngp_1.nngp, nngp_1.ntk
-                ntk = np.concatenate((ntk_0, ntk_1), axis=0)
-            nngp = np.concatenate((nngp_0, nngp_1), axis=0)                
-        else:
-            nngp_0 = kernel_fn_0(x_i, x, _x1=x_i, _x2=x, get=get)
-            nngp_1 = kernel_fn_1(x_b, x, _x1=x_b, _x2=x, get=get)
-            if ntk is not None:
-                nngp_0, ntk_0 = nngp_0.nngp, nngp_0.ntk
-                nngp_1, ntk_1 = nngp_1.nngp, nngp_1.ntk
-                ntk = np.concatenate((ntk_0, ntk_1), axis=0)
-            nngp = np.concatenate((nngp_0, nngp_1), axis=0)  
-        return k.replace(nngp=nngp, ntk=ntk, is_gaussian=True, is_input=False)
-    return _not_implemented, _not_implemented, new_kernel_fn
+    if x is None:
+      x = np.concatenate((x_i, x_b))
+      nngp_0 = kernel_fn_0(x_i, x, x=x_i, x_i=x_i, x_b=x_b, get=get)
+      nngp_1 = kernel_fn_1(x_b, x, x=x_b, x_i=x_i, x_b=x_b, get=get)
+      if ntk is not None:
+        nngp_0, ntk_0 = nngp_0.nngp, nngp_0.ntk
+        nngp_1, ntk_1 = nngp_1.nngp, nngp_1.ntk
+        ntk = np.concatenate((ntk_0, ntk_1), axis=0)
+      nngp = np.concatenate((nngp_0, nngp_1), axis=0)                
+    else:
+      nngp_0 = kernel_fn_0(x_i, x, _x1=x_i, _x2=x, get=get)
+      nngp_1 = kernel_fn_1(x_b, x, _x1=x_b, _x2=x, get=get)
+      if ntk is not None:
+        nngp_0, ntk_0 = nngp_0.nngp, nngp_0.ntk
+        nngp_1, ntk_1 = nngp_1.nngp, nngp_1.ntk
+        ntk = np.concatenate((ntk_0, ntk_1), axis=0)
+      nngp = np.concatenate((nngp_0, nngp_1), axis=0)  
+    return k.replace(nngp=nngp, ntk=ntk, is_gaussian=True, is_input=False)
+  return _not_implemented, _not_implemented, new_kernel_fn
 
 
 @layer
@@ -294,7 +229,6 @@ def Deriv(serial, order_wrt_x1, order_wrt_x2):
     def deriv(x1, x2, order_wrt_x1, order_wrt_x2, get):
       if order_wrt_x1==0:
         if order_wrt_x2==0:
-          print(type(kernel_fn(x1, x2, get)))
           return kernel_fn(x1, x2, get).squeeze()
         return grad(deriv, argnums=1)(x1, x2, order_wrt_x1, order_wrt_x2-1, get).squeeze()
       return grad(deriv, argnums=0)(x1, x2, order_wrt_x1-1, order_wrt_x2, get).squeeze()
@@ -307,11 +241,11 @@ def Deriv(serial, order_wrt_x1, order_wrt_x2):
 
 
 def Poisson(model, d_eq, d_sl):
-    equation = Deriv(model, d_eq, d_eq)
-    sl_eq = Deriv(model, d_sl, d_eq)
-    solution = Deriv(model, d_sl, d_sl)
-    eq_sl = Deriv(model, d_eq, d_sl)
-    _, _, kernel_dd = Vcombine(Hcombine(equation, eq_sl), Hcombine(sl_eq, solution))
-    _, _, kernel_td = Hcombine(sl_eq, solution)
-    _, _, kernel_tt = solution
-    return Solve(kernel_dd, kernel_td, kernel_tt)
+  equation = Deriv(model, d_eq, d_eq)
+  sl_eq = Deriv(model, d_sl, d_eq)
+  solution = Deriv(model, d_sl, d_sl)
+  eq_sl = Deriv(model, d_eq, d_sl)
+  _, _, kernel_dd = Vcombine(Hcombine(equation, eq_sl), Hcombine(sl_eq, solution))
+  _, _, kernel_td = Hcombine(sl_eq, solution)
+  _, _, kernel_tt = solution
+  return Solve(kernel_dd, kernel_td, kernel_tt)
