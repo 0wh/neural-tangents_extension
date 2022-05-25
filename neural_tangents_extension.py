@@ -75,12 +75,12 @@ def _preprocess_kernel_fn_extension(kernel_fn):
     kernel = _inputs_to_kernel(x1, x2, compute_ntk=compute_ntk, **reqs)
     out_kernel = kernel_fn(kernel, x=x, x_i=x_i, x_b=x_b, which=which, **kwargs)
     #
-    kernel_matrix = _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
+    kernel = _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
     if which=='kdd' and cond is not None:
-      cond[:] = conds(kernel_matrix, _b)
+      cond[:] = conds(kernel.ntk, _b)
 
     #return _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
-    return kernel_matrix
+    return kernel
 
   @utils.get_namedtuple('AnalyticKernel')
   def kernel_fn_any(x1_or_kernel, x2=None, get=None, *, pattern=None, mask_constant=None, diagonal_batch=None, diagonal_spatial=None, **kwargs):
