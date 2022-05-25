@@ -7,21 +7,21 @@ from neural_tangents._src.utils import utils
 from neural_tangents._src.stax.requirements import layer, get_req, _has_req, _set_req, requires, _fuse_requirements, _DEFAULT_INPUT_REQ, _set_shapes, _cov, _cov_diag_batch
 
 
+def _not_implemented(*args, **kwargs):
+  raise NotImplementedError
+
+
 def layer_extension(layer_fn):
   name = layer_fn.__name__
 
   @utils.wraps(layer_fn)
   def new_layer_fns(*args, **kwargs):
-    kernel_fn = layer_fn(*args, **kwargs)
+    _, _, kernel_fn = layer_fn(*args, **kwargs)
     kernel_fn = _preprocess_kernel_fn_extension(kernel_fn)
     kernel_fn.__name__ = name
     return kernel_fn
 
-  return new_layer_fns
-
-
-def _not_implemented(*args, **kwargs):
-  raise NotImplementedError
+  return _not_implemented, _not_implemented, new_layer_fns
 
 
 def _preprocess_kernel_fn_extension(kernel_fn):
@@ -35,7 +35,7 @@ def _preprocess_kernel_fn_extension(kernel_fn):
     out_kernel = kernel_fn(kernel, **kwargs)
     return _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
 
-  def kernel_fn_x1(x1, x2, get, method=None, **kwargs):
+  def kernel_fn_x1(x1, x2, get, **kwargs):
     # Get input requirements requested by network layers, user, or defaults.
     kernel_fn_reqs = get_req(kernel_fn)
     reqs = _fuse_requirements(kernel_fn_reqs, _DEFAULT_INPUT_REQ, **kwargs)
@@ -59,8 +59,7 @@ def _preprocess_kernel_fn_extension(kernel_fn):
       which='ktd'
     else:
       raise ValueError('invalid inputs for kernel_fn.')
-    print(method, kwargs)
-    kernel = _inputs_to_kernel_extension(x1, x2, compute_ntk=compute_ntk, method=method, **reqs)
+    kernel = _inputs_to_kernel_extension(x1, x2, compute_ntk=compute_ntk, **reqs)
     out_kernel = kernel_fn(kernel, x=x, x_i=x_i, x_b=x_b, which=which, **kwargs)
     print(out_kernel)
     return _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
@@ -191,7 +190,7 @@ def Solve(kdd, ktd, ktt):
     if ntk is not None:
       nngp, ntk = nngp.nngp, nngp.ntk
     return k.replace(nngp=nngp, ntk=ntk, is_gaussian=True, is_input=False)
-  return new_kernel_fn
+  return _not_implemented, _not_implemented, new_kernel_fn
 
 
 @layer
