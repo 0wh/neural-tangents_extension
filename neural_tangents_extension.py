@@ -75,7 +75,7 @@ def _preprocess_kernel_fn_extension(kernel_fn):
   _set_req(kernel_fn_any, get_req(kernel_fn))
   return kernel_fn_any
 
-
+@utils.nt_tree_fn(2)
 def _traditional_kernel(method, c2):
   def kernel_fn(x1, x2, get, **kwargs):
     if method=='fem':
