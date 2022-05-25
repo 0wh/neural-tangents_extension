@@ -19,9 +19,9 @@ def layer_extension(layer_fn):
     _, _, kernel_fn = layer_fn(*args, **kwargs)
     kernel_fn = _preprocess_kernel_fn_extension(kernel_fn)
     kernel_fn.__name__ = name
-    return kernel_fn
+    return _not_implemented, _not_implemented, kernel_fn
 
-  return _not_implemented, _not_implemented, new_layer_fns
+  return new_layer_fns
 
 
 def _preprocess_kernel_fn_extension(kernel_fn):
