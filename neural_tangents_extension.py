@@ -61,6 +61,7 @@ def _preprocess_kernel_fn_extension(kernel_fn):
       raise ValueError('invalid inputs for kernel_fn.')
     kernel = _inputs_to_kernel_extension(x1, x2, compute_ntk=compute_ntk, **reqs)
     out_kernel = kernel_fn(kernel, x=x, x_i=x_i, x_b=x_b, which=which, **kwargs)
+    print(kernel_fn.__name__)
     print(out_kernel)
     return _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
 
