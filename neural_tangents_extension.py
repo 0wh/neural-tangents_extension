@@ -4,11 +4,7 @@ from jax.tree_util import tree_map
 
 from neural_tangents._src.utils.kernel import Kernel
 from neural_tangents._src.utils import utils
-from neural_tangents._src.stax.requirements import layer, get_req, _has_req, _set_req, requires, _fuse_requirements, _DEFAULT_INPUT_REQ, _set_shapes, _cov, _cov_diag_batch
-
-
-def _not_implemented(*args, **kwargs):
-  raise NotImplementedError
+from neural_tangents._src.stax.requirements import layer, get_req, _has_req, _set_req, requires, _fuse_requirements, _DEFAULT_INPUT_REQ, _inputs_to_kernel, _set_shapes, _cov, _cov_diag_batch
 
 
 def layer_extension(layer_fn):
@@ -16,12 +12,16 @@ def layer_extension(layer_fn):
 
   @utils.wraps(layer_fn)
   def new_layer_fns(*args, **kwargs):
-    _, _, kernel_fn = layer_fn(*args, **kwargs)
+    kernel_fn = layer_fn(*args, **kwargs)
     kernel_fn = _preprocess_kernel_fn_extension(kernel_fn)
     kernel_fn.__name__ = name
-    return _not_implemented, _not_implemented, kernel_fn
+    return kernel_fn
 
   return new_layer_fns
+
+
+def _not_implemented(*args, **kwargs):
+  raise NotImplementedError
 
 
 def _preprocess_kernel_fn_extension(kernel_fn):
@@ -59,7 +59,7 @@ def _preprocess_kernel_fn_extension(kernel_fn):
       which='ktd'
     else:
       raise ValueError('invalid inputs for kernel_fn.')
-    kernel = _inputs_to_kernel_extension(x1, x2, compute_ntk=compute_ntk, **reqs)
+    kernel = _inputs_to_kernel(x1, x2, compute_ntk=compute_ntk, **reqs)
     out_kernel = kernel_fn(kernel, x=x, x_i=x_i, x_b=x_b, which=which, **kwargs)
     print(out_kernel)
     return _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
@@ -190,7 +190,7 @@ def Solve(kdd, ktd, ktt):
     if ntk is not None:
       nngp, ntk = nngp.nngp, nngp.ntk
     return k.replace(nngp=nngp, ntk=ntk, is_gaussian=True, is_input=False)
-  return _not_implemented, _not_implemented, new_kernel_fn
+  return new_kernel_fn
 
 
 @layer
@@ -292,6 +292,4 @@ def Poisson(model, d_eq, d_sl):
     _, _, kernel_dd = Vcombine(Hcombine(equation, eq_sl), Hcombine(sl_eq, solution))
     _, _, kernel_td = Hcombine(sl_eq, solution)
     _, _, kernel_tt = solution
-    _, _, kernel_fn = Solve(kernel_dd, kernel_td, kernel_tt)
-    print(kernel_fn)
-    return kernel_fn
+    return Solve(kernel_dd, kernel_td, kernel_tt)
