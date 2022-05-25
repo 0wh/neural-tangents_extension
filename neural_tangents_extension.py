@@ -35,7 +35,7 @@ def _preprocess_kernel_fn_extension(kernel_fn):
     out_kernel = kernel_fn(kernel, **kwargs)
     return _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
 
-  def kernel_fn_x1(x1, x2, get, conds=None, y_train=None, **kwargs):
+  def kernel_fn_x1(x1, x2, get, conds=None, _b=None, **kwargs):
     # Get input requirements requested by network layers, user, or defaults.
     kernel_fn_reqs = get_req(kernel_fn)
     reqs = _fuse_requirements(kernel_fn_reqs, _DEFAULT_INPUT_REQ, **kwargs)
@@ -64,7 +64,7 @@ def _preprocess_kernel_fn_extension(kernel_fn):
     #
     kernel_matrix = _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
     if which=='kdd' and conds is not None:
-      conds[:] = conds(kernel_matrix, y_train)
+      conds[:] = conds(kernel_matrix, _b)
 
     #return _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
     return kernel_matrix
