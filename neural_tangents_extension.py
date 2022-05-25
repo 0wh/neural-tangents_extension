@@ -117,7 +117,8 @@ def _inputs_to_kernel_extension(x1, x2, *, diagonal_batch, diagonal_spatial, com
 
   x1, cov1, mask1 = get_x_cov_mask(x1)
   x2, cov2, mask2 = get_x_cov_mask(x2)
-  if True: #method is not None:
+  print('method', method)
+  if method is not None:
     if method=='fem':
       assert x1.shape[channel_axis]==1
       nngp = _fem(x1, x2)
