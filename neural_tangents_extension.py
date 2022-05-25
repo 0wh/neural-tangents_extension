@@ -24,6 +24,19 @@ def _not_implemented(*args, **kwargs):
   raise NotImplementedError
 
 
+def conds(A, b):
+  """Amortized condition number"""
+  A = np.array(A, dtype=np.float64)
+  b = np.array(b, dtype=np.float64)
+  w, v = np.linalg.eigh(A)
+  beta = np.dot(v.transpose(), b).reshape(-1)
+  b_norm = np.sqrt(np.sum(beta**2))
+  x_norm = np.sqrt(np.sum((beta/w)**2))
+  eff_sigma = np.sqrt(np.square(1/w).mean())
+  #print(list(w))
+  return (b_norm/x_norm*eff_sigma).item(), (b_norm/x_norm/np.abs(w[0])).item() # amo_cond, eff_cond
+
+
 def _preprocess_kernel_fn_extension(kernel_fn):
   init_fn = apply_fn = _not_implemented
 
@@ -35,7 +48,7 @@ def _preprocess_kernel_fn_extension(kernel_fn):
     out_kernel = kernel_fn(kernel, **kwargs)
     return _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
 
-  def kernel_fn_x1(x1, x2, get, conds=None, _b=None, **kwargs):
+  def kernel_fn_x1(x1, x2, get, cond=None, _b=None, **kwargs):
     # Get input requirements requested by network layers, user, or defaults.
     kernel_fn_reqs = get_req(kernel_fn)
     reqs = _fuse_requirements(kernel_fn_reqs, _DEFAULT_INPUT_REQ, **kwargs)
@@ -63,8 +76,8 @@ def _preprocess_kernel_fn_extension(kernel_fn):
     out_kernel = kernel_fn(kernel, x=x, x_i=x_i, x_b=x_b, which=which, **kwargs)
     #
     kernel_matrix = _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
-    if which=='kdd' and conds is not None:
-      conds[:] = conds(kernel_matrix, _b)
+    if which=='kdd' and cond is not None:
+      cond[:] = conds(kernel_matrix, _b)
 
     #return _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
     return kernel_matrix
