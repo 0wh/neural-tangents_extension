@@ -279,27 +279,28 @@ def Vcombine(layer_fn_0, layer_fn_1):
 
 @layer
 def Deriv(serial, order_wrt_x1, order_wrt_x2):
-    """Layer constructor function for calculating the mixed derivative of the kernel function of a model."""
-    _, _, kernel_fn = serial
+  """Layer constructor function for calculating the mixed derivative of the kernel function of a model."""
+  _, _, kernel_fn = serial
 
-    def new_kernel_fn(k, *, _x1, _x2, **kwargs):
-        """Compute the transformed kernels after a `Deriv` layer."""
-        # `x1` and `x2` are used to calculate the output kernel instead of `k`
-        x1 = _x1
-        x2 = _x1 if _x2 is None else _x2
-        x1, x2 = x1.reshape(-1,1,1), x2.reshape(-1,1,1)
-        def deriv(x1, x2, order_wrt_x1, order_wrt_x2, get):
-            if order_wrt_x1==0:
-                if order_wrt_x2==0:
-                    return kernel_fn(x1, x2, get).squeeze()
-                return grad(deriv, argnums=1)(x1, x2, order_wrt_x1, order_wrt_x2-1, get).squeeze()
-            return grad(deriv, argnums=0)(x1, x2, order_wrt_x1-1, order_wrt_x2, get).squeeze()
-        nngp = vmap(vmap(deriv, in_axes=(None, 0, None, None, None)), in_axes=(0, None, None, None, None))(x1, x2, order_wrt_x1, order_wrt_x2, 'nngp')
-        ntk = k.ntk
-        if ntk is not None:
-            ntk = vmap(vmap(deriv, in_axes=(None, 0, None, None, None)), in_axes=(0, None, None, None, None))(x1, x2, order_wrt_x1, order_wrt_x2, 'ntk')
-        return k.replace(nngp=nngp, ntk=ntk, is_gaussian=True, is_input=False)
-    return _not_implemented, _not_implemented, new_kernel_fn
+  def new_kernel_fn(k, *, _x1, _x2, **kwargs):
+    """Compute the transformed kernels after a `Deriv` layer."""
+    # `x1` and `x2` are used to calculate the output kernel instead of `k`
+    x1 = _x1
+    x2 = _x1 if _x2 is None else _x2
+    x1, x2 = x1.reshape(-1,1,1), x2.reshape(-1,1,1)
+    def deriv(x1, x2, order_wrt_x1, order_wrt_x2, get):
+      if order_wrt_x1==0:
+        if order_wrt_x2==0:
+          print(kernel_fn(x1, x2, get))
+          return kernel_fn(x1, x2, get).squeeze()
+        return grad(deriv, argnums=1)(x1, x2, order_wrt_x1, order_wrt_x2-1, get).squeeze()
+      return grad(deriv, argnums=0)(x1, x2, order_wrt_x1-1, order_wrt_x2, get).squeeze()
+    nngp = vmap(vmap(deriv, in_axes=(None, 0, None, None, None)), in_axes=(0, None, None, None, None))(x1, x2, order_wrt_x1, order_wrt_x2, 'nngp')
+    ntk = k.ntk
+    if ntk is not None:
+      ntk = vmap(vmap(deriv, in_axes=(None, 0, None, None, None)), in_axes=(0, None, None, None, None))(x1, x2, order_wrt_x1, order_wrt_x2, 'ntk')
+    return k.replace(nngp=nngp, ntk=ntk, is_gaussian=True, is_input=False)
+  return _not_implemented, _not_implemented, new_kernel_fn
 
 
 def Poisson(model, d_eq, d_sl):
