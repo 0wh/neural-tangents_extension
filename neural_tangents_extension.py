@@ -262,7 +262,7 @@ def Deriv(serial, order_wrt_x1, order_wrt_x2):
     """Layer constructor function for calculating the mixed derivative of the kernel function of a model."""
     _, _, kernel_fn = serial
 
-    def new_kernel_fn(k, _x1, _x2, **kwargs):
+    def new_kernel_fn(k, *, _x1, _x2, **kwargs):
         """Compute the transformed kernels after a `Deriv` layer."""
         # `x1` and `x2` are used to calculate the output kernel instead of `k`
         x1 = _x1
