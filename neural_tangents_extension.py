@@ -153,7 +153,7 @@ def _inputs_to_kernel_extension(x1, x2, *, diagonal_batch, diagonal_spatial, com
   x1_is_x2 = utils.x1_is_x2(x1, x2, eps=eps)
   is_input = False
   kernel = Kernel(cov1=cov1, cov2=cov2, nngp=nngp, ntk=ntk, x1_is_x2=x1_is_x2, is_gaussian=is_gaussian, is_reversed=is_reversed, is_input=is_input, diagonal_batch=diagonal_batch, diagonal_spatial=diagonal_spatial, shape1=x1.shape, shape2=x1.shape if x2 is None else x2.shape, batch_axis=batch_axis, channel_axis=channel_axis, mask1=mask1, mask2=mask2)
-
+  print(type(kernel), type(kernel.nngp))
   return kernel.nngp
 
 def _rbf(x1, x2, method, c2):
