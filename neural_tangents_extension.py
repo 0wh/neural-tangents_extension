@@ -24,7 +24,7 @@ def _not_implemented(*args, **kwargs):
   raise NotImplementedError
 
 
-def conds(A, b):
+def calculate_condition_numbers(A, b):
   """Amortized condition number"""
   A = np.array(A, dtype=np.float64)
   b = np.array(b, dtype=np.float64)
@@ -77,7 +77,7 @@ def _preprocess_kernel_fn_extension(kernel_fn):
     #
     kernel = _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
     if which=='kdd' and cond is not None:
-      cond[:] = conds(kernel.ntk, _b)
+      cond[:] = calculate_condition_numbers(kernel.ntk, _b)
 
     #return _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
     return kernel
@@ -160,7 +160,7 @@ def Solve(kdd, ktd, ktt):
     elif which=='ktt':
       x1 = x
       x2 = None
-      nngp = ktt(x1, x2, x=x, get=get)
+      nngp = ktt(x1, x2, _x1=x1, _x2=x2, get=get)
     if ntk is not None:
       nngp, ntk = nngp.nngp, nngp.ntk
     return k.replace(nngp=nngp, ntk=ntk, is_gaussian=True, is_input=False)
