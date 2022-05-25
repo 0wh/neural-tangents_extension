@@ -88,7 +88,10 @@ def _traditional_kernel(method, c2):
     x1_is_x2 = utils.x1_is_x2(x1, x2, eps=1e-12)
     is_input = False
     cov1 = _cov_diag_batch(x1, False, 0, 1)
-    return Kernel(cov1=cov1, cov2=None, nngp=nngp, ntk=ntk, x1_is_x2=x1_is_x2, is_gaussian=is_gaussian, is_reversed=is_reversed, is_input=is_input, diagonal_batch=True, diagonal_spatial=False, shape1=x1.shape, shape2=x1.shape if x2 is None else x2.shape, batch_axis=0, channel_axis=1, mask1=None, mask2=None)
+    kernel = Kernel(cov1=cov1, cov2=None, nngp=nngp, ntk=ntk, x1_is_x2=x1_is_x2, is_gaussian=is_gaussian, is_reversed=is_reversed, is_input=is_input, diagonal_batch=True, diagonal_spatial=False, shape1=x1.shape, shape2=x1.shape if x2 is None else x2.shape, batch_axis=0, channel_axis=1, mask1=None, mask2=None)
+    print(type(kernel), type(kernel.nngp))
+    #return Kernel(cov1=cov1, cov2=None, nngp=nngp, ntk=ntk, x1_is_x2=x1_is_x2, is_gaussian=is_gaussian, is_reversed=is_reversed, is_input=is_input, diagonal_batch=True, diagonal_spatial=False, shape1=x1.shape, shape2=x1.shape if x2 is None else x2.shape, batch_axis=0, channel_axis=1, mask1=None, mask2=None)
+    return kernel.nngp
   return kernel_fn
 
 
