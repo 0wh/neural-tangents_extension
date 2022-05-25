@@ -35,7 +35,7 @@ def _preprocess_kernel_fn_extension(kernel_fn):
     out_kernel = kernel_fn(kernel, **kwargs)
     return _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
 
-  def kernel_fn_x1(x1, x2, get, **kwargs):
+  def kernel_fn_x1(x1, x2, get, conds=None, y_train=None, **kwargs):
     # Get input requirements requested by network layers, user, or defaults.
     kernel_fn_reqs = get_req(kernel_fn)
     reqs = _fuse_requirements(kernel_fn_reqs, _DEFAULT_INPUT_REQ, **kwargs)
@@ -61,8 +61,13 @@ def _preprocess_kernel_fn_extension(kernel_fn):
       raise ValueError('invalid inputs for kernel_fn.')
     kernel = _inputs_to_kernel(x1, x2, compute_ntk=compute_ntk, **reqs)
     out_kernel = kernel_fn(kernel, x=x, x_i=x_i, x_b=x_b, which=which, **kwargs)
-    #print(out_kernel)
-    return _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
+    #
+    kernel_matrix = _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
+    if which=='kdd' and conds is not None:
+      conds[:] = conds(kernel_matrix, y_train)
+
+    #return _set_shapes(init_fn, apply_fn, kernel, out_kernel, **kwargs)
+    return kernel_matrix
 
   @utils.get_namedtuple('AnalyticKernel')
   def kernel_fn_any(x1_or_kernel, x2=None, get=None, *, pattern=None, mask_constant=None, diagonal_batch=None, diagonal_spatial=None, **kwargs):
@@ -249,3 +254,18 @@ def Poisson(model, d_eq, d_sl):
   _, _, kernel_td = Hcombine(sl_eq, solution)
   _, _, kernel_tt = solution
   return Solve(kernel_dd, kernel_td, kernel_tt)
+
+def Gaussian_model(c):
+    kernel_fn = _traditional_kernel('gaussian', c**2)
+    print(kernel_fn)
+    return _not_implemented, _not_implemented, kernel_fn
+
+def IMQ_model(c):
+    kernel_fn = _traditional_kernel('imq', c**2)
+    print(kernel_fn)
+    return _not_implemented, _not_implemented, kernel_fn
+
+def FEM_model():
+    kernel_fn = _traditional_kernel('fem')
+    print(kernel_fn)
+    return _not_implemented, _not_implemented, kernel_fn
