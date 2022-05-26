@@ -306,6 +306,20 @@ def FEM_model():
   return _not_implemented, _not_implemented, kernel_fn
 
 
+def layer_extension(layer_fn):
+  """Rewrites the `layer` function in the Neural Tangents library to support solving differential equations."""
+  name = layer_fn.__name__
+
+  @utils.wraps(layer_fn)
+  def new_layer_fns(*args, **kwargs):
+    kernel_fn = layer_fn(*args, **kwargs)
+    kernel_fn = _preprocess_kernel_fn_extension(kernel_fn)
+    kernel_fn.__name__ = name
+    return kernel_fn
+
+  return new_layer_fns
+
+
 @layer_extension
 def Solve(kdd, ktd, ktt):
   """Unite the kernel_train_train (kdd), kernel_test_train (ktd), and kernel_test_test (ktt) into a single kernel function."""
@@ -335,19 +349,6 @@ def Solve(kdd, ktd, ktt):
 
 def _not_implemented(*args, **kwargs):
   raise NotImplementedError
-
-
-def layer_extension(layer_fn):
-  name = layer_fn.__name__
-
-  @utils.wraps(layer_fn)
-  def new_layer_fns(*args, **kwargs):
-    kernel_fn = layer_fn(*args, **kwargs)
-    kernel_fn = _preprocess_kernel_fn_extension(kernel_fn)
-    kernel_fn.__name__ = name
-    return kernel_fn
-
-  return new_layer_fns
 
 
 def calculate_condition_numbers(A, b):
