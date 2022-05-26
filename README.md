@@ -11,7 +11,9 @@ This package is an extension of the Neural Tangents library (URL: https://github
 
 
 The Neural Tangent Kernel (NTK) approximate the outputs of a wide neural network as a Gaussian process with mean.
-\[E\,[\,\hat Y(x)\,] = \Theta(x,\,\mathcal X)\,\Theta(\mathcal X,\,\mathcal X)^{-1}(I-e^{-\eta\,\Theta(\mathcal X,\,\mathcal X)\,t})\,\mathcal Y\]
+\[
+  E\,[\,\hat Y(x)\,] = \Theta(x,\,\mathcal X)\,\Theta(\mathcal X,\,\mathcal X)^{-1}(I-e^{-\eta\,\Theta(\mathcal X,\,\mathcal X)\,t})\,\mathcal Y
+\]
 The matrix $\Theta(\mathcal X,\,\mathcal X)$ is referred to as `kernel_train_train` or `kdd`, and the matrix $\Theta(x,\,\mathcal X)$ is referred to as `kernel_test_train` or `ktd` following the naming convention of Neural Tangents.
 
 
@@ -23,7 +25,9 @@ In the context of neural network solver for differential equations, the matrices
     \end{array}\right]
 \]
 and the `ktd` becomes
-\[\left[\,\mathcal L_{(2)}\Theta(x,\,\mathcal X_{i})\,,\,\Theta(x,\,\mathcal X_{b})\,\right]\]
+\[
+  \left[\,\mathcal L_{(2)}\Theta(x,\,\mathcal X_{i})\,,\,\Theta(x,\,\mathcal X_{b})\,\right]
+\]
 Here, $\Theta_{i,i} = \Theta(\mathcal X_{i},\,\mathcal X_{i})\,$, $\Theta_{b,i} = \Theta(\mathcal X_{b},\,\mathcal X_{i})\,$ and so on; $\mathcal L$ and $\mathcal L_{(2)}$ are the same differential operator but act on the first and the second variable of the covariance function $\Theta(x,\,x')$ respectively.
 
 
