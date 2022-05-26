@@ -31,6 +31,8 @@ class Infinite_time_inference:
         The underlying model to generate the approximated solution. One of the `nn`, `gaussian`, `imq`, `fem` defined in this module or a custom method.
       equation:
         An object that describes the differential equation and its closed-form solution. For the Poisson's equation, must implement the `source` and `solution` methods.
+      model_kwargs:
+        Hyperparameters for `model`. Must set at least once at construction or when calling run, when the model requires one. Must set `std` when using `nn`; must set `c` when using `gaussian` or `imq`. Refer to the example notebook for more details.
     """
     self.rmse = []
     self.cd_a = []
@@ -54,6 +56,8 @@ class Infinite_time_inference:
         Set to `True` in order to acquire the Effective condition number and the Amotized condition number from `self.cd_e` and `self.cd_a` respectively.
       precision:
         Precision used during inference. Can be `np.float32` or `np.float64`.
+      model_kwargs:
+        Hyperparameters for `model`. Must set at least once at construction or when calling run, when the model requires one.
     """
     source = self.equation.source
     solution = self.equation.solution
@@ -101,6 +105,8 @@ class Finite_time_inference:
         The underlying model to generate the approximated solution. One of the `nn`, `gaussian`, `imq`, `fem` defined in this module or a custom method.
       equation:
         An object that describes the differential equation and its closed-form solution. For the Poisson's equation, must implement the `source` and `solution` methods.
+      model_kwargs:
+        Hyperparameters for `model`. Must set at least once at construction or when calling run, when the model requires one.
     """
     self.model = model
     self.equation = equation
@@ -123,6 +129,8 @@ class Finite_time_inference:
         Set to `True` in order to acquire the uncertainty of the rmse from `self.one_sigma`.
       precision:
         Precision used during inference. Can be `np.float32` or `np.float64`.
+      model_kwargs:
+        Hyperparameters for `model`. Must set at least once at construction or when calling run, when the model requires one.
     """
     source = self.equation.source
     solution = self.equation.solution
@@ -290,19 +298,16 @@ def Deriv(serial, order_wrt_x1, order_wrt_x2):
 
 def Gaussian_model(c):
   kernel_fn = _traditional_kernel('gaussian', c**2)
-  print(kernel_fn)
   return _not_implemented, _not_implemented, kernel_fn
 
 
 def IMQ_model(c):
   kernel_fn = _traditional_kernel('imq', c**2)
-  print(kernel_fn)
   return _not_implemented, _not_implemented, kernel_fn
 
 
 def FEM_model():
   kernel_fn = _traditional_kernel('fem')
-  print(kernel_fn)
   return _not_implemented, _not_implemented, kernel_fn
 
 
