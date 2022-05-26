@@ -18,12 +18,12 @@ The matrix $\Theta(\mathcal X,\,\mathcal X)$ is referred to as `kernel_train_tra
 
 
 In the context of neural network solver for differential equations, the matrices take different forms. When solving a differential equation with linear operator $\mathcal L$, the `kdd` becomes
-$$
+\[
   \left[\begin{array}{rr}
         \mathcal L\mathcal L_{(2)}\Theta_{i,i} & \mathcal L\,\Theta_{i,b} \\
         \mathcal L_{(2)}\Theta_{b,i} & \Theta_{b,b}
     \end{array}\right]
-$$
+\]
 and the `ktd` becomes
 $$
   \left[\,\mathcal L_{(2)}\Theta(x,\,\mathcal X_{i})\,,\,\Theta(x,\,\mathcal X_{b})\,\right]
