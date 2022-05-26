@@ -1,4 +1,4 @@
-# neural-tangents_extension
+# Extension of Neural Tangents
 
 
 ## Overview
