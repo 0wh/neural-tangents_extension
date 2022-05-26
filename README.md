@@ -1,13 +1,13 @@
 # neural-tangents_extension
 
 
-## Overview
+\section{Overview}
 
 
 This package is an extension of the Neural Tangents library (URL: https://github.com/google/neural-tangents). We added new features to support the kernel computation in the context of solving differential equations. For the complexity of the cost function, a set of methods are implemented to aid the construction of the partitioned kernel matrix. See the example notebooks for more information.
 
 
-## Symbols
+\section{Symbols}
 
 
 The Neural Tangent Kernel (NTK) approximate the outputs of a wide neural network as a Gaussian process with mean.
