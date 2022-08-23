@@ -393,7 +393,8 @@ def _preprocess_kernel_fn_extension(kernel_fn):
     if x2 is None:
       if type(x1) is tuple and len(x1)==2:
         x_i, x_b = x1
-        x_i, x_b = x_i.astype(np.float64), x_b.astype(np.float64)
+        #x_i, x_b = x_i.astype(np.float64), x_b.astype(np.float64)
+        print(str(x_i.dtype)+' kdd')
         x1 = np.concatenate((x_i, x_b))
         which='kdd'
       elif isinstance(x1, np.ndarray):
